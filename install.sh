@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 # Astra Backend Installer
-# Usage: ./install.sh [--voice] [--system-deps]
+# Usage: ./install.sh [--voice] [--system-deps] [--skip-config]
 
 set -euo pipefail
 
 VOICE=false
 SYSTEM_DEPS=false
+SKIP_CONFIG=false
 for arg in "$@"; do
     case "$arg" in
         --voice) VOICE=true ;;
         --system-deps) SYSTEM_DEPS=true ;;
+        --skip-config) SKIP_CONFIG=true ;;
         *) echo "Unknown option: $arg"; exit 1 ;;
     esac
 done
@@ -147,20 +149,18 @@ if $VOICE; then
     pip install -r requirements-voice.txt
 fi
 
-# --- Create config files from examples ---
-if [[ ! -f "config/config.toml" ]]; then
-    log "Creating config/config.toml from example..."
-    cp config/config.example.toml config/config.toml
+# --- Interactive configuration ---
+if $SKIP_CONFIG; then
+    log "Skipping interactive configuration (--skip-config)."
+    if [[ ! -f "config/config.toml" ]]; then
+        cp config/config.example.toml config/config.toml
+    fi
+    if [[ ! -f ".env" ]]; then
+        cp .env.example .env
+    fi
 else
-    warn "config/config.toml already exists, not overwriting."
-fi
-
-if [[ ! -f ".env" ]]; then
-    log "Creating .env from example..."
-    cp .env.example .env
-    warn "Edit .env and add your API key before running the server."
-else
-    warn ".env already exists, not overwriting."
+    log "Starting interactive configuration..."
+    python scripts/configure.py
 fi
 
 # --- Verify install ---
@@ -169,13 +169,19 @@ python -m pytest tests -q
 
 log "Install complete."
 echo
-log "Next steps:"
-echo "  1. Edit .env with your LLM API key"
-echo "  2. Review config/config.toml"
-if $VOICE; then
-    echo "  3. Run: python api/server.py"
-    echo "     (voice/WebRTC deps installed)"
+if $SKIP_CONFIG; then
+    log "Next steps:"
+    echo "  1. Edit .env with your LLM API key"
+    echo "  2. Review config/config.toml"
 else
-    echo "  3. Run: python api/server.py"
-    echo "     (for voice calls, re-run: ./install.sh --voice --system-deps)"
+    log "You can now start the server:"
+fi
+if $VOICE; then
+    echo "  source .venv/bin/activate"
+    echo "  python api/server.py"
+    echo "  (voice/WebRTC deps installed)"
+else
+    echo "  source .venv/bin/activate"
+    echo "  python api/server.py"
+    echo "  (for voice calls, re-run: ./install.sh --voice --system-deps)"
 fi

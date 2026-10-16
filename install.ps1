@@ -3,7 +3,8 @@
 
 param(
     [switch]$Voice,
-    [switch]$SystemDeps
+    [switch]$SystemDeps,
+    [switch]$SkipConfig
 )
 
 $ErrorActionPreference = "Stop"
@@ -83,20 +84,18 @@ if ($Voice) {
     pip install -r requirements-voice.txt
 }
 
-# --- Create config files from examples ---
-if (-not (Test-Path "config\config.toml")) {
-    Log "Creating config\config.toml from example..."
-    Copy-Item "config\config.example.toml" "config\config.toml"
+# --- Interactive configuration ---
+if ($SkipConfig) {
+    Log "Skipping interactive configuration (-SkipConfig)."
+    if (-not (Test-Path "config\config.toml")) {
+        Copy-Item "config\config.example.toml" "config\config.toml"
+    }
+    if (-not (Test-Path ".env")) {
+        Copy-Item ".env.example" ".env"
+    }
 } else {
-    Warn "config\config.toml already exists, not overwriting."
-}
-
-if (-not (Test-Path ".env")) {
-    Log "Creating .env from example..."
-    Copy-Item ".env.example" ".env"
-    Warn "Edit .env and add your API key before running the server."
-} else {
-    Warn ".env already exists, not overwriting."
+    Log "Starting interactive configuration..."
+    python scripts\configure.py
 }
 
 # --- Verify install ---
@@ -105,13 +104,19 @@ python -m pytest tests -q
 
 Log "Install complete."
 Write-Host
-Log "Next steps:"
-Write-Host "  1. Edit .env with your LLM API key"
-Write-Host "  2. Review config\config.toml"
-if ($Voice) {
-    Write-Host "  3. Run: python api/server.py"
-    Write-Host "     (voice/WebRTC deps installed)"
+if ($SkipConfig) {
+    Log "Next steps:"
+    Write-Host "  1. Edit .env with your LLM API key"
+    Write-Host "  2. Review config\config.toml"
 } else {
-    Write-Host "  3. Run: python api/server.py"
-    Write-Host "     (for voice calls, re-run: .\install.ps1 -Voice -SystemDeps)"
+    Log "You can now start the server:"
+}
+if ($Voice) {
+    Write-Host "  .venv\Scripts\activate"
+    Write-Host "  python api/server.py"
+    Write-Host "  (voice/WebRTC deps installed)"
+} else {
+    Write-Host "  .venv\Scripts\activate"
+    Write-Host "  python api/server.py"
+    Write-Host "  (for voice calls, re-run: .\install.ps1 -Voice -SystemDeps)"
 }

@@ -87,29 +87,35 @@ For voice calls:
 
 ## Configure
 
-The installer creates two files from examples if they don't exist:
+The installer now runs an interactive wizard that writes both configuration
+files for you. Just answer the prompts for provider, model, API key, and bind
+host/port.
 
-- `.env` — put your LLM API key here (never commit this).
+```bash
+./install.sh --system-deps
+```
+
+The wizard creates:
+
+- `.env` — your API key (never commit this).
 - `config/config.toml` — runtime settings.
 
-Edit `.env`:
+To skip the wizard (e.g. for CI/automation):
 
-```dotenv
-OPENROUTER_API_KEY=sk-or-v1-...
-# or
-NVIDIA_API_KEY=nvapi-...
-# or
-OLLAMA_API_KEY=...
+```bash
+./install.sh --skip-config
 ```
 
-Edit `config/config.toml` to choose a provider:
+Then edit the files by hand.
 
-```toml
-[llm]
-provider = "ollama"   # or "openrouter", "nvidia_build", "openai-compatible"
-model = "qwen3"
-# api_key is read from .env automatically
-```
+### Supported providers
+
+| Number | Provider | Default model |
+|---|---|---|
+| 1 | OpenRouter | `openrouter/free` |
+| 2 | NVIDIA Build | `z-ai/glm-5.3-flash` |
+| 3 | Ollama (local) | `qwen3` |
+| 4 | OpenAI-compatible | `gpt-4o-mini` |
 
 ## Run
 
