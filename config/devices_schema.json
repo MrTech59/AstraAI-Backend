@@ -1,0 +1,11 @@
+{
+  "domains": ["light", "switch", "binary_sensor", "climate", "media_player", "lock", "cover"],
+  "services": {
+    "light": ["turn_on", "turn_off", "toggle", "set_brightness"],
+    "switch": ["turn_on", "turn_off", "toggle"],
+    "cover": ["open_cover", "close_cover", "stop_cover"],
+    "lock": ["lock", "unlock"],
+    "climate": ["set_temperature", "set_hvac_mode"],
+    "media_player": ["media_play", "media_pause", "media_stop", "volume_set"]
+  }
+}

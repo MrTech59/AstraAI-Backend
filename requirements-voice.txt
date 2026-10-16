@@ -1,0 +1,15 @@
+# Optional: legacy voice stack (astra.voice) and WebRTC voice gateway.
+# Heavy - PC/server only, not for Raspberry Pi 1 B+.
+llama-cpp-python
+piper-tts
+faster-whisper
+requests
+PyYAML
+sounddevice
+numpy
+chromadb
+pyaudio
+pydantic
+beautifulsoup4
+openai
+aiortc

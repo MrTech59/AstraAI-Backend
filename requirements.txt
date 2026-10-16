@@ -1,0 +1,4 @@
+# Astra Core 0.1 - lightweight agent core (no heavy AI frameworks)
+httpx>=0.27
+fastapi>=0.110
+uvicorn>=0.29

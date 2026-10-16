@@ -1,0 +1,57 @@
+# Astra Core configuration
+# Copy this to config/config.toml and adjust for your environment.
+# Do NOT put API keys here — use environment variables or .env
+
+[llm]
+provider = "openrouter"          # "openrouter", "nvidia_build", "ollama", "openai-compatible"
+model = "openrouter/free"
+base_url = "https://openrouter.ai/api/v1"
+temperature = 0.7
+max_tokens = 2048
+timeout = 60.0
+
+# --- NVIDIA Build API (https://build.nvidia.com) ---
+# Set NVIDIA_API_KEY in .env, then:
+# provider = "nvidia_build"
+# model = "z-ai/glm-5.3-flash"   # any model from the build.nvidia.com catalog
+# base_url defaults to https://integrate.api.nvidia.com/v1 (no need to set)
+
+[agent]
+system_prompt = "You are Astra, a helpful AI assistant with access to tools. Use tools when they help answer the user. Be concise."
+max_tool_iterations = 8
+
+[context]
+max_messages = 30
+max_memories = 5
+
+[memory]
+db_path = "data/astra.db"
+
+[security]
+allow_shell = false
+allowed_shell_prefixes = ["echo ", "ls ", "cat ", "python " ]
+filesystem_roots = ["."]
+
+[api]
+host = "127.0.0.1"
+port = 8321
+
+# [mcp.servers] list format; 0.1 supports a basic HTTP MCP stub.
+# [[mcp.servers]]
+# name = "browser"
+# url = "http://192.168.1.247:8000/mcp"
+# enabled = true
+
+[logging]
+level = "INFO"
+file = "logs/astra.log"
+
+# Tool permission actions: "allow" | "confirm" | "deny".
+# Omitted keys keep their safe built-in defaults — missing config never
+# widens access. Approval can never bypass filesystem confinement or the
+# shell allowlist; those are enforced independently.
+[permissions]
+filesystem_list = "allow"
+filesystem_read = "allow"
+filesystem_write = "confirm"
+shell_exec = "confirm"

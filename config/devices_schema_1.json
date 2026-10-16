@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "intent_type": { "enum": ["control", "query", "conversation"] },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "domain": { "enum": ["light", "switch", "climate", "media_player", "lock", "cover", "system"] },
+          "service": { "type": "string" },
+          "entity_id": { "type": "string" },
+          "data": { "type": "object" }
+        },
+        "required": ["domain", "service", "entity_id"]
+      }
+    },
+    "assistant_response": { "type": "string" }
+  },
+  "required": ["intent_type"]
+}
