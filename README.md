@@ -12,13 +12,43 @@ scaffold.  It does **not** contain the Flutter app.
 - CLI for interactive use
 - pytest suite (runs without API keys)
 
+## System requirements
+
+| Component | Minimum | Recommended |
+|---|---|---|
+| Python | 3.11 | 3.12 |
+| RAM (core only) | 512 MB | 1 GB |
+| RAM (voice/WebRTC) | 2 GB | 4 GB+ |
+| Disk (core only) | 200 MB | 1 GB |
+| Disk (voice stack) | 2 GB+ | 5 GB+ |
+| OS | Linux, Windows, macOS | Ubuntu 22.04/24.04, Debian 12 |
+| Network | localhost:8321 | HTTPS/WSS on port 443 |
+
+### Notes
+
+- The core API (text chat + HTTP endpoints) is lightweight and runs on a
+  Raspberry Pi or small VPS.
+- `requirements-voice.txt` includes `aiortc`, `faster-whisper`, `piper-tts`, and
+  `llama-cpp-python`. These are heavy and may require a C++ compiler and
+  development headers to build wheels.
+- On Debian/Ubuntu, install build tools before `--voice`:
+
+  ```bash
+  sudo apt update
+  sudo apt install -y build-essential python3-dev libopus-dev portaudio19-dev
+  ```
+
+- WebRTC voice calls require a public HTTPS/WSS endpoint. The backend itself
+  runs plain HTTP on `localhost:8321`; terminate TLS with Caddy, Nginx, or a
+  reverse proxy.
+
 ## Quick start
 
 ### Linux / macOS
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/astra-backend.git
-cd astra-backend
+git clone https://github.com/MrTech59/AstraAI-Backend.git
+cd AstraAI-Backend
 ./install.sh
 ```
 
@@ -31,8 +61,8 @@ For voice calls, also install the heavy voice/WebRTC deps:
 ### Windows
 
 ```powershell
-git clone https://github.com/YOUR_USERNAME/astra-backend.git
-cd astra-backend
+git clone https://github.com/MrTech59/AstraAI-Backend.git
+cd AstraAI-Backend
 .\install.ps1
 ```
 
