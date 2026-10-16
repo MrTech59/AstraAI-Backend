@@ -98,6 +98,30 @@ if ! $PYTHON -c "import sys; assert sys.version_info >= (3, 11)" 2>/dev/null; th
 fi
 log "Found Python $PY_VERSION"
 
+# --- Ensure venv module is available ---
+if ! $PYTHON -m venv --help >/dev/null 2>&1; then
+    if $SYSTEM_DEPS; then
+        PY_MAJOR=$($PYTHON -c "import sys; print(sys.version_info.major)")
+        PY_MINOR=$($PYTHON -c "import sys; print(sys.version_info.minor)")
+        if command -v apt-get >/dev/null 2>&1; then
+            log "Installing python${PY_MAJOR}.${PY_MINOR}-venv package..."
+            apt-get update
+            apt-get install -y "python${PY_MAJOR}.${PY_MINOR}-venv"
+        else
+            err "The Python 'venv' module is missing, but this distro is not Debian/Ubuntu."
+            err "Install the equivalent 'python3-venv' package for your distro."
+            exit 1
+        fi
+    else
+        err "The Python 'venv' module is missing. On Debian/Ubuntu install it with:"
+        PY_MAJOR=$($PYTHON -c "import sys; print(sys.version_info.major)")
+        PY_MINOR=$($PYTHON -c "import sys; print(sys.version_info.minor)")
+        err "  apt install python${PY_MAJOR}.${PY_MINOR}-venv"
+        err "Or re-run with --system-deps to install it automatically."
+        exit 1
+    fi
+fi
+
 # --- Create venv ---
 VENV_DIR=".venv"
 if [[ ! -d "$VENV_DIR" ]]; then
