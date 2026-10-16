@@ -157,39 +157,100 @@ def main() -> int:
         return 1
 
     print()
-    print("Public domain (optional; used for the Flutter app and reverse proxy):")
+    print("Public domain (optional; used by the Flutter app):")
     domain = prompt("Domain", "")
+
+    tunnel_type = "none"
+    if domain:
+        print()
+        print("How will you expose the backend to that domain?")
+        print("  1) Caddy")
+        print("  2) Cloudflare Tunnel (cloudflared)")
+        print("  3) Nginx")
+        print("  4) Something else / already set up")
+        tunnel_choice = prompt("Tunnel number", "2")
+        tunnel_map = {"1": "caddy", "2": "cloudflare", "3": "nginx", "4": "none"}
+        tunnel_type = tunnel_map.get(tunnel_choice, "none")
 
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     write_config(provider, model, base_url, host, port)
     write_env(key_name, api_key)
 
+    generated_files: list[str] = []
     if domain:
-        caddy = f"""# Caddyfile for {domain}
+        if tunnel_type == "caddy":
+            caddy = f"""# Caddyfile for {domain}
 # Place this file next to Caddy's main config, or run:
 #   caddy reverse-proxy --from {domain} --to {host}:{port}
 {domain} {{
     reverse_proxy {host}:{port}
 }}
 """
-        Path("Caddyfile").write_text(caddy, encoding="utf-8")
+            Path("Caddyfile").write_text(caddy, encoding="utf-8")
+            generated_files.append("Caddyfile")
+        elif tunnel_type == "cloudflare":
+            cf_config = f"""# Cloudflare Tunnel config for {domain}
+# 1. Run: cloudflared tunnel login
+# 2. Run: cloudflared tunnel create astra
+# 3. Run: cloudflared tunnel route dns astra {domain}
+# 4. Run: cloudflared tunnel --config cloudflared-config.yml run astra
+#
+# Replace <TUNNEL_ID> and <CREDENTIALS_FILE> with values from step 2.
+tunnel: <TUNNEL_ID>
+credentials-file: /root/.cloudflared/<TUNNEL_ID>.json
+ingress:
+  - hostname: {domain}
+    service: http://{host}:{port}
+  - service: http_status:404
+"""
+            Path("cloudflared-config.yml").write_text(cf_config, encoding="utf-8")
+            generated_files.append("cloudflared-config.yml")
+        elif tunnel_type == "nginx":
+            nginx = f"""# Nginx server block for {domain}
+server {{
+    listen 443 ssl;
+    server_name {domain};
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {{
+        proxy_pass http://{host}:{port};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }}
+}}
+"""
+            Path("nginx-server-block.conf").write_text(nginx, encoding="utf-8")
+            generated_files.append("nginx-server-block.conf")
 
     print()
     print("Configuration written:")
     print(f"  - {CONFIG_PATH}")
     print(f"  - {ENV_PATH}")
-    if domain:
-        print(f"  - Caddyfile")
+    for f in generated_files:
+        print(f"  - {f}")
     print()
     print("Start the server:")
     print("  source .venv/bin/activate")
     print("  python api/server.py")
     print()
     if domain:
-        print(f"Reverse proxy (Caddy):")
-        print(f"  {domain} {{")
-        print(f"      reverse_proxy {host}:{port}")
-        print(f"  }}")
+        print(f"Public URL: https://{domain}")
+        print()
+        if tunnel_type == "caddy":
+            print("Run Caddy:")
+            print("  caddy run")
+        elif tunnel_type == "cloudflare":
+            print("Set up Cloudflare Tunnel:")
+            print("  cloudflared tunnel login")
+            print("  cloudflared tunnel create astra")
+            print(f"  cloudflared tunnel route dns astra {domain}")
+            print("  cloudflared tunnel --config cloudflared-config.yml run astra")
+        elif tunnel_type == "nginx":
+            print("Copy nginx-server-block.conf into your Nginx sites directory and reload.")
         print()
         print(f"Run the Flutter app:")
         print(f"  flutter run --dart-define=ASTRA_BACKEND_URL=wss://{domain}")

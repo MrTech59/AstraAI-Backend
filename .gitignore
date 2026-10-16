@@ -4,6 +4,8 @@
 # Generated config
 config/config.toml
 Caddyfile
+cloudflared-config.yml
+nginx-server-block.conf
 
 # Python
 __pycache__/

@@ -140,6 +140,36 @@ flutter run --dart-define=ASTRA_BACKEND_URL=ws://localhost:8321
 
 WebRTC requires HTTPS/WSS.  Put a reverse proxy in front of `api/server.py`:
 
+### Cloudflare Tunnel (recommended for free domains)
+
+Cloudflare Tunnel is the easiest way to expose Astra over HTTPS/WSS without
+opening firewall ports or managing TLS certificates.
+
+1. Install `cloudflared`:
+
+   ```bash
+   # Debian/Ubuntu
+   wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+   sudo dpkg -i cloudflared-linux-amd64.deb
+   ```
+
+2. Authenticate and create a tunnel:
+
+   ```bash
+   cloudflared tunnel login
+   cloudflared tunnel create astra
+   cloudflared tunnel route dns astra astra.yourdomain.com
+   ```
+
+3. The installer wizard can generate `cloudflared-config.yml`. Then run:
+
+   ```bash
+   cloudflared tunnel --config cloudflared-config.yml run astra
+   ```
+
+The backend stays on `http://localhost:8321`; Cloudflare handles TLS at the
+edge. WebSocket traffic passes through automatically.
+
 ### Caddy
 
 ```text
