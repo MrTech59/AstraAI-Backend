@@ -158,9 +158,12 @@ def main() -> int:
 
     print()
     print("Public domain (optional; used by the Flutter app):")
-    domain = prompt("Domain", "")
+    domain = prompt("Domain", "").strip()
+    # Strip protocol and trailing slashes so "https://example.com/" becomes "example.com"
+    domain = domain.removeprefix("https://").removeprefix("http://").removesuffix("/")
 
     tunnel_type = "none"
+    tunnel_id = ""
     if domain:
         print()
         print("How will you expose the backend to that domain?")
@@ -171,6 +174,13 @@ def main() -> int:
         tunnel_choice = prompt("Tunnel number", "2")
         tunnel_map = {"1": "caddy", "2": "cloudflare", "3": "nginx", "4": "none"}
         tunnel_type = tunnel_map.get(tunnel_choice, "none")
+
+        if tunnel_type == "cloudflare":
+            print()
+            print("If you already created a Cloudflare tunnel, paste its ID here.")
+            print("Leave blank to use placeholders and fill them in after running")
+            print("  cloudflared tunnel create astra")
+            tunnel_id = prompt("Tunnel ID", "").strip()
 
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     write_config(provider, model, base_url, host, port)
@@ -189,15 +199,18 @@ def main() -> int:
             Path("Caddyfile").write_text(caddy, encoding="utf-8")
             generated_files.append("Caddyfile")
         elif tunnel_type == "cloudflare":
-            cf_config = f"""# Cloudflare Tunnel config for {domain}
-# 1. Run: cloudflared tunnel login
-# 2. Run: cloudflared tunnel create astra
-# 3. Run: cloudflared tunnel route dns astra {domain}
-# 4. Run: cloudflared tunnel --config cloudflared-config.yml run astra
-#
-# Replace <TUNNEL_ID> and <CREDENTIALS_FILE> with values from step 2.
-tunnel: <TUNNEL_ID>
-credentials-file: /root/.cloudflared/<TUNNEL_ID>.json
+            if tunnel_id:
+                creds_file = f"/root/.cloudflared/{tunnel_id}.json"
+                placeholder_note = ""
+            else:
+                tunnel_id = "<TUNNEL_ID>"
+                creds_file = "/root/.cloudflared/<TUNNEL_ID>.json"
+                placeholder_note = """#
+# Replace <TUNNEL_ID> and the credentials-file path with the values from:
+#   cloudflared tunnel create astra
+"""
+            cf_config = f"""# Cloudflare Tunnel config for {domain}{placeholder_note}tunnel: {tunnel_id}
+credentials-file: {creds_file}
 ingress:
   - hostname: {domain}
     service: http://{host}:{port}
@@ -248,6 +261,9 @@ server {{
             print("  cloudflared tunnel login")
             print("  cloudflared tunnel create astra")
             print(f"  cloudflared tunnel route dns astra {domain}")
+            print()
+            print("After creating the tunnel, update cloudflared-config.yml")
+            print("with the tunnel ID and credentials-file path, then run:")
             print("  cloudflared tunnel --config cloudflared-config.yml run astra")
         elif tunnel_type == "nginx":
             print("Copy nginx-server-block.conf into your Nginx sites directory and reload.")
