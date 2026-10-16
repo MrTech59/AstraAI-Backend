@@ -3,6 +3,7 @@
 
 # Generated config
 config/config.toml
+Caddyfile
 
 # Python
 __pycache__/

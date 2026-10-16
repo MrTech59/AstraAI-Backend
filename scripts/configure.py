@@ -156,18 +156,46 @@ def main() -> int:
         print(f"Invalid port: {port_str}", file=sys.stderr)
         return 1
 
+    print()
+    print("Public domain (optional; used for the Flutter app and reverse proxy):")
+    domain = prompt("Domain", "")
+
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     write_config(provider, model, base_url, host, port)
     write_env(key_name, api_key)
+
+    if domain:
+        caddy = f"""# Caddyfile for {domain}
+# Place this file next to Caddy's main config, or run:
+#   caddy reverse-proxy --from {domain} --to {host}:{port}
+{domain} {{
+    reverse_proxy {host}:{port}
+}}
+"""
+        Path("Caddyfile").write_text(caddy, encoding="utf-8")
 
     print()
     print("Configuration written:")
     print(f"  - {CONFIG_PATH}")
     print(f"  - {ENV_PATH}")
+    if domain:
+        print(f"  - Caddyfile")
     print()
-    print("Next step: run the server with")
+    print("Start the server:")
     print("  source .venv/bin/activate")
     print("  python api/server.py")
+    print()
+    if domain:
+        print(f"Reverse proxy (Caddy):")
+        print(f"  {domain} {{")
+        print(f"      reverse_proxy {host}:{port}")
+        print(f"  }}")
+        print()
+        print(f"Run the Flutter app:")
+        print(f"  flutter run --dart-define=ASTRA_BACKEND_URL=wss://{domain}")
+    else:
+        print("Run the Flutter app locally:")
+        print(f"  flutter run --dart-define=ASTRA_BACKEND_URL=ws://{host}:{port}")
     return 0
 
 
