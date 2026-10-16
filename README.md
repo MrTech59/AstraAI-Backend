@@ -46,29 +46,44 @@ scaffold.  It does **not** contain the Flutter app.
 
 ### Linux / macOS
 
+One-shot install (Python + build headers + Astra core):
+
 ```bash
 git clone https://github.com/MrTech59/AstraAI-Backend.git
 cd AstraAI-Backend
-./install.sh
+./install.sh --system-deps
 ```
 
 For voice calls, also install the heavy voice/WebRTC deps:
 
 ```bash
-./install.sh --voice
+./install.sh --voice --system-deps
+```
+
+If Python is already installed, omit `--system-deps`:
+
+```bash
+./install.sh
 ```
 
 ### Windows
 
+One-shot install (Python + Astra core) from an elevated PowerShell:
+
 ```powershell
 git clone https://github.com/MrTech59/AstraAI-Backend.git
 cd AstraAI-Backend
-.\install.ps1
+.\install.ps1 -SystemDeps
 ```
 
+For voice calls:
+
 ```powershell
-.\install.ps1 -Voice
+.\install.ps1 -Voice -SystemDeps
 ```
+
+> If the installer installs Python for the first time, close and reopen
+> PowerShell before re-running the command.
 
 ## Configure
 

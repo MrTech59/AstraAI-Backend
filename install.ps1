@@ -1,8 +1,9 @@
 # Astra Backend Installer
-# Usage: .\install.ps1 [-Voice]
+# Usage: .\install.ps1 [-Voice] [-SystemDeps]
 
 param(
-    [switch]$Voice
+    [switch]$Voice,
+    [switch]$SystemDeps
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,18 +15,44 @@ function Log($msg) { Write-Host "[astra] $msg" -ForegroundColor Green }
 function Warn($msg) { Write-Host "[astra] $msg" -ForegroundColor Yellow }
 function Err($msg) { Write-Host "[astra] $msg" -ForegroundColor Red }
 
+# --- Install system dependencies on Windows ---
+function Install-SystemDeps {
+    Log "Attempting to install Python via winget..."
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+        Err "winget not found. Please install Python $MinPy+ manually from https://www.python.org/downloads/"
+        exit 1
+    }
+    winget install --id Python.Python.3.12 --scope machine --accept-source-agreements --accept-package-agreements
+    Log "Python installed. You may need to restart your terminal and re-run this installer."
+}
+
+if ($SystemDeps) {
+    Install-SystemDeps
+}
+
 # --- Python version check ---
-Log "Checking Python version..."
+Log "Checking Python..."
+$pyVersion = $null
 try {
     $pyVersionString = & $Python --version 2>&1
     $pyVersion = [version]($pyVersionString -replace "Python ", "")
 } catch {
-    Err "Could not determine Python version. Is Python installed and in PATH?"
-    exit 1
+    if (-not $SystemDeps) {
+        Err "Python is not installed. Re-run with -SystemDeps to install it automatically,"
+        Err "or install Python $MinPy+ manually from https://www.python.org/downloads/"
+        exit 1
+    } else {
+        Err "Python is still not available after installing system deps."
+        Err "Restart your terminal and re-run this installer."
+        exit 1
+    }
 }
 
 if ($pyVersion -lt $MinPy) {
     Err "Python $MinPy+ is required, found $pyVersion"
+    if (-not $SystemDeps) {
+        Err "Re-run with -SystemDeps to attempt an upgrade."
+    }
     exit 1
 }
 Log "Found Python $pyVersion"
@@ -86,5 +113,5 @@ if ($Voice) {
     Write-Host "     (voice/WebRTC deps installed)"
 } else {
     Write-Host "  3. Run: python api/server.py"
-    Write-Host "     (for voice calls, re-run: .\install.ps1 -Voice)"
+    Write-Host "     (for voice calls, re-run: .\install.ps1 -Voice -SystemDeps)"
 }

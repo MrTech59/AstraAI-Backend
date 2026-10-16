@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
 # Astra Backend Installer
-# Usage: ./install.sh [--voice]
+# Usage: ./install.sh [--voice] [--system-deps]
 
 set -euo pipefail
 
 VOICE=false
-if [[ "${1:-}" == "--voice" ]]; then
-    VOICE=true
-fi
+SYSTEM_DEPS=false
+for arg in "$@"; do
+    case "$arg" in
+        --voice) VOICE=true ;;
+        --system-deps) SYSTEM_DEPS=true ;;
+        *) echo "Unknown option: $arg"; exit 1 ;;
+    esac
+done
 
 PYTHON="${PYTHON:-python3}"
 MIN_PY="3.11"
@@ -21,11 +26,74 @@ log() { echo -e "${GREEN}[astra]${NC} $*"; }
 warn() { echo -e "${YELLOW}[astra]${NC} $*"; }
 err() { echo -e "${RED}[astra]${NC} $*" >&2; }
 
-# --- Python version check ---
-log "Checking Python version..."
+# --- Install system dependencies ---
+install_system_deps() {
+    if command -v apt-get >/dev/null 2>&1; then
+        log "Installing system dependencies with apt..."
+        sudo apt-get update
+        sudo apt-get install -y \
+            python3 python3-venv python3-dev python3-pip \
+            build-essential \
+            libopus-dev \
+            portaudio19-dev \
+            libffi-dev \
+            libssl-dev
+    elif command -v dnf >/dev/null 2>&1; then
+        log "Installing system dependencies with dnf..."
+        sudo dnf install -y \
+            python3 python3-devel python3-pip \
+            gcc gcc-c++ make \
+            opus-devel \
+            portaudio-devel \
+            libffi-devel \
+            openssl-devel
+    elif command -v pacman >/dev/null 2>&1; then
+        log "Installing system dependencies with pacman..."
+        sudo pacman -Sy --needed \
+            python python-pip \
+            base-devel \
+            opus \
+            portaudio \
+            libffi \
+            openssl
+    elif command -v brew >/dev/null 2>&1; then
+        log "Installing system dependencies with brew..."
+        brew install python opus portaudio libffi openssl
+    else
+        err "Could not detect a supported package manager."
+        err "Install Python $MIN_PY+, a C compiler, and opus/portaudio headers manually."
+        exit 1
+    fi
+}
+
+if $SYSTEM_DEPS; then
+    install_system_deps
+fi
+
+# --- Python check / install ---
+log "Checking Python..."
+if ! command -v "$PYTHON" >/dev/null 2>&1; then
+    if $SYSTEM_DEPS; then
+        log "Python not found; system deps were installed, trying again..."
+        PYTHON="python3"
+        if ! command -v "$PYTHON" >/dev/null 2>&1; then
+            err "Python is still not available after installing system deps."
+            err "Please install Python $MIN_PY+ manually and re-run."
+            exit 1
+        fi
+    else
+        err "Python is not installed. Re-run with --system-deps to install it automatically,"
+        err "or install Python $MIN_PY+ manually."
+        exit 1
+    fi
+fi
+
 PY_VERSION=$($PYTHON --version 2>&1 | awk '{print $2}')
 if ! $PYTHON -c "import sys; assert sys.version_info >= (3, 11)" 2>/dev/null; then
     err "Python $MIN_PY+ is required, found $PY_VERSION"
+    if ! $SYSTEM_DEPS; then
+        err "Re-run with --system-deps to attempt an upgrade."
+    fi
     exit 1
 fi
 log "Found Python $PY_VERSION"
@@ -85,5 +153,5 @@ if $VOICE; then
     echo "     (voice/WebRTC deps installed)"
 else
     echo "  3. Run: python api/server.py"
-    echo "     (for voice calls, re-run: ./install.sh --voice)"
+    echo "     (for voice calls, re-run: ./install.sh --voice --system-deps)"
 fi
