@@ -4,7 +4,8 @@
 param(
     [switch]$Voice,
     [switch]$SystemDeps,
-    [switch]$SkipConfig
+    [switch]$SkipConfig,
+    [switch]$Test
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,6 +16,18 @@ $MinPy = [version]"3.11"
 function Log($msg) { Write-Host "[astra] $msg" -ForegroundColor Green }
 function Warn($msg) { Write-Host "[astra] $msg" -ForegroundColor Yellow }
 function Err($msg) { Write-Host "[astra] $msg" -ForegroundColor Red }
+
+if ($Test) {
+    if (-not (Test-Path ".venv")) {
+        Err "Virtual environment not found. Run .\install.ps1 first."
+        exit 1
+    }
+    $activate = Join-Path ".venv" "Scripts\Activate.ps1"
+    . $activate
+    Log "Running tests..."
+    python -m pytest tests -q
+    exit 0
+}
 
 # --- Install system dependencies on Windows ---
 function Install-SystemDeps {

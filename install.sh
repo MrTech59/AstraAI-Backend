@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 # Astra Backend Installer
-# Usage: ./install.sh [--voice] [--system-deps] [--skip-config]
+# Usage: ./install.sh [--voice] [--system-deps] [--skip-config] [--test]
 
 set -euo pipefail
 
 VOICE=false
 SYSTEM_DEPS=false
 SKIP_CONFIG=false
+RUN_TESTS=false
 for arg in "$@"; do
     case "$arg" in
         --voice) VOICE=true ;;
         --system-deps) SYSTEM_DEPS=true ;;
         --skip-config) SKIP_CONFIG=true ;;
+        --test) RUN_TESTS=true ;;
         *) echo "Unknown option: $arg"; exit 1 ;;
     esac
 done
@@ -27,6 +29,18 @@ NC='\033[0m'
 log() { echo -e "${GREEN}[astra]${NC} $*"; }
 warn() { echo -e "${YELLOW}[astra]${NC} $*"; }
 err() { echo -e "${RED}[astra]${NC} $*" >&2; }
+
+if $RUN_TESTS; then
+    if [[ ! -d ".venv" ]]; then
+        err "Virtual environment not found. Run ./install.sh first."
+        exit 1
+    fi
+    # shellcheck source=/dev/null
+    source ".venv/bin/activate"
+    log "Running tests..."
+    python -m pytest tests -q
+    exit 0
+fi
 
 # --- Install system dependencies ---
 install_system_deps() {
