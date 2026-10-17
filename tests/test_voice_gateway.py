@@ -69,13 +69,20 @@ class TestConnectionManager:
 
 
 class TestVoiceGateway:
-    def test_availability_without_aiortc(self) -> None:
+    def test_availability_when_aiortc_missing(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            "astra.voice_gateway.gateway._AIORTC_AVAILABLE", False
+        )
         gateway = VoiceGateway()
-        # In the test environment aiortc is not installed.
         assert gateway.is_available() is False
 
     @pytest.mark.asyncio
-    async def test_offer_fails_when_unavailable(self) -> None:
+    async def test_offer_fails_when_unavailable(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            "astra.voice_gateway.gateway._AIORTC_AVAILABLE", False
+        )
         gateway = VoiceGateway()
         with pytest.raises(VoiceGatewayError, match="Voice gateway is not available"):
             await gateway.handle_offer("call1", "v=0\r\n")
@@ -94,7 +101,12 @@ class TestApiWebSocket:
             response = ws.receive_json()
             assert response["type"] == MessageType.PONG
 
-    def test_signal_without_aiortc_returns_error(self, client: TestClient) -> None:
+    def test_signal_without_aiortc_returns_error(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            "astra.voice_gateway.gateway._AIORTC_AVAILABLE", False
+        )
         with client.websocket_connect("/ws") as ws:
             ws.send_json(
                 {
